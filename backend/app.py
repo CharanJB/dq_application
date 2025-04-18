@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from profiling import profile_data
 import shutil
 import os
+from fastapi.responses import FileResponse
+import pandas as pd
+import uuid
 
 app = FastAPI()
 
@@ -23,3 +26,10 @@ async def upload_file(file: UploadFile = File(...)):
 
     profile = profile_data(file_location)
     return profile
+
+@app.post("/export/")
+async def export_profile(data: dict):
+    df = pd.DataFrame(data)
+    fname = f"temp_files/profile_{uuid.uuid4().hex}.parquet"
+    df.to_parquet(fname)
+    return FileResponse(fname, filename="profile.parquet", media_type='application/octet-stream')
