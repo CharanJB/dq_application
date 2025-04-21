@@ -32,6 +32,48 @@ function App() {
     return Object.entries(counts).map(([type, count]) => ({ type, count }));
   };
 
+  const exportToCSV = () => {
+    if (!profile) return;
+  
+    const headers = [
+      "Column",
+      "Type",
+      "Null %",
+      "Null Rate",
+      "Skewness",
+      "Kurtosis",
+      "Count",
+      "Mean",
+      "Std"
+    ];
+  
+    const rows = profile.columns.map((col) => [
+      col,
+      profile.data_types[col],
+      (profile.null_rate[col] * 100).toFixed(1),
+      profile.null_rate[col].toFixed(3),
+      profile.skewness[col]?.toFixed(3) ?? '',
+      profile.kurtosis[col]?.toFixed(3) ?? '',
+      profile.basic_stats[col]?.count ?? '',
+      profile.basic_stats[col]?.mean?.toFixed(3) ?? '',
+      profile.basic_stats[col]?.std?.toFixed(3) ?? ''
+    ]);
+  
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.join(","))
+    ].join("\n");
+  
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "column_profile.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-6 font-sans max-w-screen-lg mx-auto">
       <h1 className="text-3xl font-bold mb-8 text-center">📊 Data Profiler</h1>
@@ -69,6 +111,17 @@ function App() {
               <div className="p-4 bg-gray-100 rounded">Null %: <strong>{((getTotalNulls() / (profile.shape[0] * profile.shape[1])) * 100).toFixed(1)}%</strong></div>
             </div>
           </div>
+
+          {profile && (
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={exportToCSV}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+                disabled={!profile}>  
+                Export CSV
+              </button>
+            </div>
+          )}
 
           {/* Column Details Table */}
           <div className="bg-white rounded-xl shadow p-6 mb-6">
