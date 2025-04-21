@@ -70,24 +70,6 @@ function App() {
             </div>
           </div>
 
-          {/* Type Distribution Pie Chart */}
-          <div className="bg-white rounded-xl shadow p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">📊 Column Type Distribution</h2>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={getTypeCounts()} dataKey="count" nameKey="type" cx="50%" cy="50%" outerRadius={80} label>
-                    {getTypeCounts().map((entry, index) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
           {/* Column Details Table */}
           <div className="bg-white rounded-xl shadow p-6 mb-6">
             <h2 className="text-xl font-semibold mb-4">📃 Column Details</h2>
