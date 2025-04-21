@@ -1,8 +1,10 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 from profiling import profile_dataframe
-from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
 
 app.add_middleware(
   CORSMiddleware,
@@ -10,8 +12,6 @@ app.add_middleware(
   allow_methods=["*"],
   allow_headers=["*"],
 )
-
-app = FastAPI()
 
 def load_dataframe(file: UploadFile) -> pd.DataFrame:
     """Read CSV or Parquet into pandas."""

@@ -6,8 +6,8 @@ import {
 } from 'recharts';
 
 function App() {
-  const [file, setFile]         = useState(null);
-  const [profile, setProfile]   = useState(null);
+  const [file, setFile] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [selectedCol, setSelectedCol] = useState(null);
 
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7f50', '#a6cee3'];
@@ -20,7 +20,6 @@ function App() {
     setSelectedCol(res.data.columns[0]);
   };
 
-  // Build dataset overview
   const getTotalNulls = () =>
     Object.values(profile.null_values || {}).reduce((a, b) => a + b, 0);
 
@@ -33,133 +32,97 @@ function App() {
     return Object.entries(counts).map(([type, count]) => ({ type, count }));
   };
 
-  // Prepare histogram chart data
-  const histogramData = () => {
-    const { bins, counts } = profile.histogram[selectedCol];
-    return bins.slice(0, -1).map((b, i) => ({
-      bin: `${b.toFixed(1)}–${bins[i + 1].toFixed(1)}`,
-      count: counts[i]
-    }));
-  };
-
   return (
-    <div className="p-6 font-sans">
-      <h1 className="text-2xl font-bold mb-6">📊 Data Profiler</h1>
+    <div className="p-6 font-sans max-w-screen-lg mx-auto">
+      <h1 className="text-3xl font-bold mb-8 text-center">📊 Data Profiler</h1>
 
-      <input type="file" accept=".csv,.parquet"
-             onChange={e => setFile(e.target.files[0])} />
-      <button onClick={handleUpload}
-              className="ml-2 p-2 bg-blue-500 text-white rounded">
-        Profile
-      </button>
+      {/* Upload Section */}
+      <div className="flex items-center space-x-4 mb-6 justify-center">
+        <input
+          type="file"
+          accept=".csv,.parquet"
+          onChange={e => setFile(e.target.files[0])}
+          className="border border-gray-300 rounded px-3 py-2 w-full max-w-sm"
+        />
+        <button
+          onClick={handleUpload}
+          disabled={!file}
+          className={`px-4 py-2 rounded text-white transition ${
+            file
+              ? 'bg-blue-600 hover:bg-blue-700'
+              : 'bg-gray-400 cursor-not-allowed'
+          }`}
+        >
+          Profile
+        </button>
+      </div>
 
       {profile && (
         <>
           {/* Dataset Summary */}
-          <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="p-4 bg-gray-100 rounded">
-              Rows: <strong>{profile.shape[0]}</strong>
-            </div>
-            <div className="p-4 bg-gray-100 rounded">
-              Columns: <strong>{profile.shape[1]}</strong>
-            </div>
-            <div className="p-4 bg-gray-100 rounded">
-              Total Nulls: <strong>{getTotalNulls()}</strong>
-            </div>
-            <div className="p-4 bg-gray-100 rounded">
-              Null %: <strong>
-                {((getTotalNulls()/
-                   (profile.shape[0]*profile.shape[1]))*100).toFixed(1)}%
-              </strong>
+          <div className="bg-white rounded-xl shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">📈 Dataset Summary</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 bg-gray-100 rounded">Rows: <strong>{profile.shape[0]}</strong></div>
+              <div className="p-4 bg-gray-100 rounded">Columns: <strong>{profile.shape[1]}</strong></div>
+              <div className="p-4 bg-gray-100 rounded">Total Nulls: <strong>{getTotalNulls()}</strong></div>
+              <div className="p-4 bg-gray-100 rounded">Null %: <strong>{((getTotalNulls() / (profile.shape[0] * profile.shape[1])) * 100).toFixed(1)}%</strong></div>
             </div>
           </div>
 
-          {/* Type Distribution */}
-          <div className="h-64 mb-8">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={getTypeCounts()}
-                     dataKey="count" nameKey="type"
-                     cx="50%" cy="50%" outerRadius={80} label>
-                  {getTypeCounts().map((e,i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Column Selection & Histogram */}
-          <div className="mb-6">
-            <label className="mr-2">Select column:</label>
-            <select value={selectedCol}
-                    onChange={e => setSelectedCol(e.target.value)}
-                    className="border p-1">
-              {profile.columns.map(col =>
-                <option key={col} value={col}>{col}</option>
-              )}
-            </select>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={histogramData()}>
-                <XAxis dataKey="bin" tick={{ fontSize: 10 }} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Type Distribution Pie Chart */}
+          <div className="bg-white rounded-xl shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">📊 Column Type Distribution</h2>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={getTypeCounts()} dataKey="count" nameKey="type" cx="50%" cy="50%" outerRadius={80} label>
+                    {getTypeCounts().map((entry, index) => (
+                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
           {/* Column Details Table */}
-          <h2 className="text-xl font-semibold mt-8 mb-2">📃 Column Details</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm border">
-              <thead className="bg-gray-200">
-                <tr>
-                  <th className="p-2 border">Column</th>
-                  <th className="p-2 border">Type</th>
-                  <th className="p-2 border">Null %</th>
-                  <th className="p-2 border">Null Rate</th>
-                  <th className="p-2 border">Skewness</th>
-                  <th className="p-2 border">Kurtosis</th>
-                  <th className="p-2 border">Count</th>
-                  <th className="p-2 border">Mean</th>
-                  <th className="p-2 border">Std</th>
-                </tr>
-              </thead>
-              <tbody>
-                {profile.columns.map((col, i) => (
-                  <tr key={i}>
-                    <td className="p-2 border">{col}</td>
-                    <td className="p-2 border">{profile.data_types[col]}</td>
-                    <td className="p-2 border">
-                      {(profile.null_rate[col] * 100).toFixed(1)}%
-                    </td>
-                    <td className="p-2 border">
-                      {profile.null_rate[col].toFixed(3)}
-                    </td>
-                    <td className="p-2 border">
-                      {profile.skewness[col]?.toFixed(3) ?? '-'}
-                    </td>
-                    <td className="p-2 border">
-                      {profile.kurtosis[col]?.toFixed(3) ?? '-'}
-                    </td>
-                    <td className="p-2 border">
-                      {profile.basic_stats[col]?.count ?? '-'}
-                    </td>
-                    <td className="p-2 border">
-                      {profile.basic_stats[col]?.mean?.toFixed(3) ?? '-'}
-                    </td>
-                    <td className="p-2 border">
-                      {profile.basic_stats[col]?.std?.toFixed(3) ?? '-'}
-                    </td>
+          <div className="bg-white rounded-xl shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">📃 Column Details</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm border border-gray-300 rounded overflow-hidden shadow-md">
+                <thead className="bg-gray-100 text-left">
+                  <tr>
+                    <th className="p-3 border">Column</th>
+                    <th className="p-3 border">Type</th>
+                    <th className="p-3 border">Null %</th>
+                    <th className="p-3 border">Null Rate</th>
+                    <th className="p-3 border">Skew</th>
+                    <th className="p-3 border">Kurt</th>
+                    <th className="p-3 border">Count</th>
+                    <th className="p-3 border">Mean</th>
+                    <th className="p-3 border">Std</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {profile.columns.map((col, i) => (
+                    <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50 hover:bg-gray-100'}>
+                      <td className="p-3 border">{col}</td>
+                      <td className="p-3 border">{profile.data_types[col]}</td>
+                      <td className="p-3 border">{(profile.null_rate[col] * 100).toFixed(1)}%</td>
+                      <td className="p-3 border">{profile.null_rate[col].toFixed(3)}</td>
+                      <td className="p-3 border">{profile.skewness[col]?.toFixed(3) ?? '-'}</td>
+                      <td className="p-3 border">{profile.kurtosis[col]?.toFixed(3) ?? '-'}</td>
+                      <td className="p-3 border">{profile.basic_stats[col]?.count ?? '-'}</td>
+                      <td className="p-3 border">{profile.basic_stats[col]?.mean?.toFixed(3) ?? '-'}</td>
+                      <td className="p-3 border">{profile.basic_stats[col]?.std?.toFixed(3) ?? '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}
