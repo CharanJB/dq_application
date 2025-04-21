@@ -1,35 +1,30 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from profiling import profile_data
-import shutil
-import os
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import JSONResponse
 import pandas as pd
-import uuid
+from profiling import profile_dataframe
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins=["http://localhost:3000"],
+  allow_methods=["*"],
+  allow_headers=["*"],
+)
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def load_dataframe(file: UploadFile) -> pd.DataFrame:
+    """Read CSV or Parquet into pandas."""
+    if file.filename.endswith(".csv"):
+        return pd.read_csv(file.file)
+    elif file.filename.endswith(".parquet"):
+        return pd.read_parquet(file.file)
+    else:
+        raise ValueError("Unsupported file type")
 
 @app.post("/upload/")
-async def upload_file(file: UploadFile = File(...)):
-    file_location = f"temp_files/{file.filename}"
-    os.makedirs("temp_files", exist_ok=True)
-    with open(file_location, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    profile = profile_data(file_location)
-    return profile
-
-@app.post("/export/")
-async def export_profile(data: dict):
-    df = pd.DataFrame(data)
-    fname = f"temp_files/profile_{uuid.uuid4().hex}.parquet"
-    df.to_parquet(fname)
-    return FileResponse(fname, filename="profile.parquet", media_type='application/octet-stream')
+async def upload(file: UploadFile = File(...)):
+    df = load_dataframe(file)
+    # pass e.g. hist_bins=20 if you want more granularity
+    profile = profile_dataframe(df, hist_bins=20)
+    return JSONResponse(content=profile)
